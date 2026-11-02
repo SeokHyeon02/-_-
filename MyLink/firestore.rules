@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedInAs(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    function validUsername(username) {
+      return username is string && username.matches('^[a-z0-9][a-z0-9_-]{2,23}$')
+        && !(username in ['demo', 'mypage', 'api', 'admin', 'login', '_next']);
+    }
+    function validProfile() {
+      return request.resource.data.keys().hasOnly(['username', 'displayName', 'bio', 'createdAt', 'updatedAt'])
+        && validUsername(request.resource.data.username)
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 50
+        && request.resource.data.bio is string && request.resource.data.bio.size() <= 300;
+    }
+    function validLink() {
+      return request.resource.data.keys().hasOnly(['title', 'url', 'createdAt', 'updatedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.url is string
+        && request.resource.data.url.size() <= 2048
+        && request.resource.data.url.matches('^https?://.+');
+    }
+
+    match /usernames/{username} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null && validUsername(username)
+        && request.resource.data.keys().hasOnly(['userId'])
+        && request.resource.data.userId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)/profile/public).data.username == username;
+      allow update: if false;
+      // 이름 변경 시 기존 매핑과 프로필을 함께 갱신해야 합니다.
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)/profile/public).data.username != username;
+    }
+
+    match /users/{uid} {
+      allow read, write: if false;
+      match /profile/{profileId} {
+        allow get: if profileId == 'public';
+        allow list: if false;
+        allow create, update: if profileId == 'public' && signedInAs(uid) && validProfile()
+          && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.userId == uid;
+        allow delete: if false;
+      }
+      match /links/{linkId} {
+        allow read: if true;
+        allow create, update: if signedInAs(uid) && validLink();
+        allow delete: if signedInAs(uid);
+      }
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
