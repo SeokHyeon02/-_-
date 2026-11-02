@@ -4,9 +4,9 @@ const KEY = "mylink-demo-v1";
 
 export const starterData: MyLinkData = {
   profile: {
-    username: "demo",
-    displayName: "마이링크 데모",
-    bio: "좋아하는 것과 나의 기록을 한곳에.\n연결되는 모든 순간을 모아두었어요.",
+    username: "mylink",
+    displayName: "나의 마이링크",
+    bio: "",
   },
   links: [
     { id: "sample-1", title: "Instagram", url: "https://www.instagram.com/" },
@@ -28,7 +28,7 @@ export function getDemo(): MyLinkData {
         ...starterData.profile,
         displayName: String(parsed.profile.displayName ?? starterData.profile.displayName),
         bio: String(parsed.profile.bio ?? starterData.profile.bio),
-        username: "demo",
+        username: "mylink",
       },
       links: parsed.links.filter((v): v is LinkItemLike =>
         !!v && typeof v.id === "string" && typeof v.title === "string" &&
