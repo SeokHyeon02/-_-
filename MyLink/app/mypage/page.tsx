@@ -81,7 +81,11 @@ export default function MyPage() {
     if (!services) return;
     setBusy(true); setNotice(null);
     try { await signInWithPopup(services.auth, new GoogleAuthProvider()); }
-    catch (err) { setNotice({ text: errorText(err), error: true }); }
+    catch (err) {
+      if (!(typeof err === "object" && err !== null && "code" in err && err.code === "auth/popup-closed-by-user")) {
+        setNotice({ text: errorText(err), error: true });
+      }
+    }
     finally { setBusy(false); }
   }
 
