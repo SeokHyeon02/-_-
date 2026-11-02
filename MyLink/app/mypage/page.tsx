@@ -79,14 +79,14 @@ export default function MyPage() {
   async function signIn() {
     const services = getFirebase();
     if (!services) return;
-    setBusy(true); setNotice(null);
+    setNotice(null);
     try { await signInWithPopup(services.auth, new GoogleAuthProvider()); }
     catch (err) {
-      if (!(typeof err === "object" && err !== null && "code" in err && err.code === "auth/popup-closed-by-user")) {
+      if (!(typeof err === "object" && err !== null && "code" in err &&
+        (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request"))) {
         setNotice({ text: errorText(err), error: true });
       }
     }
-    finally { setBusy(false); }
   }
 
   async function signOutUser() {
